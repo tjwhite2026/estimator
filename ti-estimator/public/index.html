@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TI Scope Estimator — InDecca Build</title>
+<meta name="description" content="Get a rough tenant improvement cost range in under a minute. Based on real construction data from Columbus, Ohio.">
+<!-- Prevent indexing while in preview/review mode -->
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy: #1C2127;
+    --blue: #2A6DB5;
+    --blue-dark: #1f5a9e;
+    --amber: #C4862A;
+    --off-white: #F7F6F2;
+    --border: #E0DDD6;
+    --text-muted: #6B7A8D;
+    --text-secondary: #555;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--off-white);
+    color: var(--navy);
+    min-height: 100vh;
+  }
+
+  /* ── Preview banner ── */
+  .preview-banner {
+    background: #fffbe6;
+    border-bottom: 1px solid #f0d060;
+    padding: 10px 20px;
+    text-align: center;
+    font-size: 13px;
+    color: #7a5f00;
+  }
+  .preview-banner strong { font-weight: 600; }
+
+  /* ── Header ── */
+  .header {
+    background: var(--navy);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .logo { color: #fff; font-size: 15px; font-weight: 600; letter-spacing: .02em; text-decoration: none; }
+  .logo span { color: var(--blue); }
+  .header-cta {
+    background: var(--blue);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 18px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    transition: background .15s;
+  }
+  .header-cta:hover { background: var(--blue-dark); }
+
+  /* ── Hero ── */
+  .hero {
+    padding: 56px 32px 40px;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  .eyebrow {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--blue);
+    margin-bottom: 12px;
+  }
+  .hero h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 42px;
+    line-height: 1.15;
+    margin-bottom: 16px;
+  }
+  .hero p { font-size: 16px; color: var(--text-secondary); line-height: 1.6; max-width: 520px; }
+
+  /* ── Card ── */
+  .card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    max-width: 720px;
+    margin: 0 auto 32px;
+  }
+
+  /* ── Form fields ── */
+  .field { margin-bottom: 28px; }
+  .field:last-child { margin-bottom: 0; }
+
+  .field-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--navy);
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .field-label span { font-weight: 400; color: #888; font-size: 12px; }
+
+  .sf-display { font-size: 28px; font-weight: 600; margin-bottom: 4px; }
+  .sf-unit { font-size: 13px; color: #888; font-weight: 400; }
+
+  input[type="range"] {
+    width: 100%;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--navy);
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 1.5px var(--navy);
+    cursor: pointer;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--navy);
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 1.5px var(--navy);
+    cursor: pointer;
+  }
+  .range-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 11px;
+    color: #999;
+  }
+
+  .option-grid { display: grid; gap: 8px; }
+  .option-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .option-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+  .option-btn {
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 8px;
+    text-align: center;
+    cursor: pointer;
+    background: #fff;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: #555;
+    transition: border-color .15s, color .15s, background .15s;
+  }
+  .option-btn:hover { border-color: var(--blue); color: var(--blue); }
+  .option-btn.active { border-color: var(--navy); background: var(--navy); color: #fff; }
+  .option-btn .opt-icon { font-size: 18px; display: block; margin-bottom: 4px; }
+  .option-btn .opt-sub { display: block; font-size: 10px; color: #aaa; margin-top: 2px; font-weight: 400; }
+  .option-btn.active .opt-sub { color: #aaa; }
+
+  .divider { height: 1px; background: var(--border); margin: 8px 0 28px; }
+
+  /* ── Result section ── */
+  .result-section {
+    background: var(--navy);
+    border-radius: 12px;
+    padding: 28px 32px;
+    max-width: 720px;
+    margin: 0 auto 32px;
+  }
+  .result-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .result-range {
+    font-family: 'DM Serif Display', serif;
+    font-size: 40px;
+    color: #fff;
+    line-height: 1.1;
+    margin-bottom: 4px;
+  }
+  .result-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 24px; }
+
+  .bar-wrap {
+    background: #2E3740;
+    border-radius: 6px;
+    height: 12px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .bar-fill {
+    height: 100%;
+    background: var(--amber);
+    border-radius: 6px;
+    transition: width .4s cubic-bezier(.4,0,.2,1);
+  }
+  .bar-markers { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); }
+
+  .breakdown {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #2E3740;
+  }
+  .bk-label { font-size: 11px; color: var(--text-muted); margin-bottom: 3px; }
+  .bk-val { font-size: 14px; font-weight: 600; color: #fff; }
+
+  /* ── Assumptions ── */
+  .assumptions {
+    font-size: 12px;
+    color: #888;
+    max-width: 720px;
+    margin: 0 auto 32px;
+    padding: 0 4px;
+    line-height: 1.7;
+  }
+  .assumptions strong { color: #555; }
+
+  /* ── CTA section ── */
+  .cta-section {
+    display: flex;
+    gap: 32px;
+    align-items: center;
+  }
+  .cta-text h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 24px;
+    margin-bottom: 8px;
+  }
+  .cta-text p { font-size: 14px; color: #666; line-height: 1.6; }
+  .cta-right { flex-shrink: 0; }
+
+  .cta-btn {
+    display: block;
+    background: var(--blue);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 14px 28px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    white-space: nowrap;
+    margin-bottom: 10px;
+    transition: background .15s;
+  }
+  .cta-btn:hover { background: var(--blue-dark); }
+  .cta-note { font-size: 11px; color: #aaa; text-align: center; }
+
+  /* ── Lead form ── */
+  .form-row { display: flex; gap: 16px; margin-top: 16px; }
+  .form-field { flex: 1; }
+  .form-field label { display: block; font-size: 12px; font-weight: 600; color: #555; margin-bottom: 6px; }
+  .form-field input,
+  .form-field select {
+    width: 100%;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+    color: var(--navy);
+    background: #fff;
+    transition: border-color .15s;
+  }
+  .form-field input:focus,
+  .form-field select:focus { border-color: var(--blue); }
+
+  .form-heading {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--navy);
+    margin-bottom: 4px;
+  }
+  .form-sub { font-size: 13px; color: #888; margin-bottom: 8px; }
+
+  .submit-btn {
+    width: 100%;
+    background: var(--blue);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: background .15s;
+  }
+  .submit-btn:hover:not(:disabled) { background: var(--blue-dark); }
+  .submit-btn:disabled { background: #aaa; cursor: not-allowed; }
+
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    display: none;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .form-err {
+    font-size: 12px;
+    color: #c0392b;
+    margin-top: 10px;
+    display: none;
+    padding: 8px 12px;
+    background: #fdf0ef;
+    border-radius: 6px;
+    border: 1px solid #f5c6c6;
+  }
+
+  /* ── Success ── */
+  .success-msg {
+    text-align: center;
+    padding: 32px 16px;
+  }
+  .success-icon { font-size: 48px; margin-bottom: 16px; }
+  .success-msg h3 { font-size: 20px; font-weight: 600; margin-bottom: 10px; }
+  .success-msg p { font-size: 14px; color: #666; line-height: 1.6; }
+  .hs-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #FF7A59;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 4px;
+    padding: 5px 12px;
+    margin-top: 16px;
+  }
+  .hs-link {
+    display: inline-block;
+    margin-top: 14px;
+    color: var(--blue);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .hs-link:hover { text-decoration: underline; }
+
+  /* ── Footer ── */
+  .footer {
+    text-align: center;
+    padding: 24px 32px 40px;
+    font-size: 12px;
+    color: #aaa;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 640px) {
+    .hero { padding: 32px 16px 24px; }
+    .hero h1 { font-size: 30px; }
+    .card, .result-section { margin-left: 12px; margin-right: 12px; }
+    .assumptions { margin-left: 12px; margin-right: 12px; }
+    .cta-section { flex-direction: column; }
+    .option-grid.cols-4 { grid-template-columns: repeat(2, 1fr); }
+    .option-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+    .breakdown { grid-template-columns: 1fr 1fr; }
+    .form-row { flex-direction: column; gap: 12px; }
+    .header { padding: 14px 16px; }
+    .result-range { font-size: 30px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Preview banner: remove before going live -->
+<div class="preview-banner">
+  🔒 <strong>Preview mode</strong> — this page is not indexed by search engines. Share this URL with your team for review.
+</div>
+
+<!-- Header -->
+<header class="header">
+  <a class="logo" href="https://indecca.com">In<span>Decca</span> Build</a>
+  <button class="header-cta" onclick="scrollToCTA()">Get a real quote</button>
+</header>
+
+<!-- Hero -->
+<section class="hero">
+  <p class="eyebrow">Tenant improvement estimator</p>
+  <h1>What will your build-out actually cost?</h1>
+  <p>Get a rough cost range in under a minute. Based on real construction data from Columbus, Ohio and the surrounding market.</p>
+</section>
+
+<!-- Estimator inputs -->
+<main>
+  <div class="card" aria-label="Estimator inputs">
+
+    <div class="field">
+      <div class="field-label">Square footage <span id="sf-val-label">5,000 SF</span></div>
+      <div class="sf-display" id="sf-display" aria-live="polite">5,000 <span class="sf-unit">sq ft</span></div>
+      <input type="range" id="sf-slider" min="1000" max="50000" step="500" value="5000"
+             aria-label="Square footage" oninput="update()">
+      <div class="range-labels"><span>1,000 SF</span><span>50,000 SF</span></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="field">
+      <div class="field-label">Finish level</div>
+      <div class="option-grid cols-3" id="finish-grid" role="group" aria-label="Finish level">
+        <button class="option-btn" data-val="basic" onclick="selectOption('finish','basic',this)">
+          <span class="opt-icon" aria-hidden="true">🔩</span>
+          <span>Basic</span>
+          <span class="opt-sub">Open office, minimal</span>
+        </button>
+        <button class="option-btn active" data-val="mid" onclick="selectOption('finish','mid',this)">
+          <span class="opt-icon" aria-hidden="true">🪟</span>
+          <span>Mid-grade</span>
+          <span class="opt-sub">Standard corporate</span>
+        </button>
+        <button class="option-btn" data-val="high" onclick="selectOption('finish','high',this)">
+          <span class="opt-icon" aria-hidden="true">✨</span>
+          <span>High-end</span>
+          <span class="opt-sub">Executive / premium</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="field">
+      <div class="field-label">Space type</div>
+      <div class="option-grid cols-4" id="type-grid" role="group" aria-label="Space type">
+        <button class="option-btn active" data-val="office" onclick="selectOption('type','office',this)">
+          <span class="opt-icon" aria-hidden="true">💼</span>
+          <span>Office</span>
+        </button>
+        <button class="option-btn" data-val="medical" onclick="selectOption('type','medical',this)">
+          <span class="opt-icon" aria-hidden="true">🏥</span>
+          <span>Medical</span>
+        </button>
+        <button class="option-btn" data-val="retail" onclick="selectOption('type','retail',this)">
+          <span class="opt-icon" aria-hidden="true">🛍️</span>
+          <span>Retail</span>
+        </button>
+        <button class="option-btn" data-val="industrial" onclick="selectOption('type','industrial',this)">
+          <span class="opt-icon" aria-hidden="true">🏭</span>
+          <span>Industrial</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="field">
+      <div class="field-label">Timeline <span id="timeline-val-label">9 months</span></div>
+      <input type="range" id="timeline-slider" min="3" max="24" step="1" value="9"
+             aria-label="Project timeline in months" oninput="update()">
+      <div class="range-labels"><span>3 months</span><span>24 months</span></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="field">
+      <div class="field-label">Condition of existing space</div>
+      <div class="option-grid cols-3" id="condition-grid" role="group" aria-label="Space condition">
+        <button class="option-btn active" data-val="vanilla" onclick="selectOption('condition','vanilla',this)">
+          <span class="opt-icon" aria-hidden="true">⬜</span>
+          <span>Vanilla shell</span>
+          <span class="opt-sub">New / never finished</span>
+        </button>
+        <button class="option-btn" data-val="second" onclick="selectOption('condition','second',this)">
+          <span class="opt-icon" aria-hidden="true">🔄</span>
+          <span>Second gen</span>
+          <span class="opt-sub">Prior tenant improvements</span>
+        </button>
+        <button class="option-btn" data-val="demo" onclick="selectOption('condition','demo',this)">
+          <span class="opt-icon" aria-hidden="true">🔨</span>
+          <span>Full demo needed</span>
+          <span class="opt-sub">Strip and rebuild</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="field">
+      <div class="field-label">State <span id="state-cost-label"></span></div>
+      <select id="state-select" aria-label="Select your state" onchange="selectState(this.value)"
+        style="width:100%;border:1.5px solid var(--border);border-radius:6px;padding:10px 12px;font-size:14px;font-family:'Inter',sans-serif;outline:none;color:var(--navy);background:#fff;transition:border-color .15s;cursor:pointer;">
+        <option value="OH" selected>Ohio</option>
+        <option value="AL">Alabama</option>
+        <option value="AK">Alaska</option>
+        <option value="AZ">Arizona</option>
+        <option value="AR">Arkansas</option>
+        <option value="CA">California</option>
+        <option value="CO">Colorado</option>
+        <option value="CT">Connecticut</option>
+        <option value="DE">Delaware</option>
+        <option value="FL">Florida</option>
+        <option value="GA">Georgia</option>
+        <option value="HI">Hawaii</option>
+        <option value="ID">Idaho</option>
+        <option value="IL">Illinois</option>
+        <option value="IN">Indiana</option>
+        <option value="IA">Iowa</option>
+        <option value="KS">Kansas</option>
+        <option value="KY">Kentucky</option>
+        <option value="LA">Louisiana</option>
+        <option value="ME">Maine</option>
+        <option value="MD">Maryland</option>
+        <option value="MA">Massachusetts</option>
+        <option value="MI">Michigan</option>
+        <option value="MN">Minnesota</option>
+        <option value="MS">Mississippi</option>
+        <option value="MO">Missouri</option>
+        <option value="MT">Montana</option>
+        <option value="NE">Nebraska</option>
+        <option value="NV">Nevada</option>
+        <option value="NH">New Hampshire</option>
+        <option value="NJ">New Jersey</option>
+        <option value="NM">New Mexico</option>
+        <option value="NY">New York</option>
+        <option value="NC">North Carolina</option>
+        <option value="ND">North Dakota</option>
+        <option value="OK">Oklahoma</option>
+        <option value="OR">Oregon</option>
+        <option value="PA">Pennsylvania</option>
+        <option value="RI">Rhode Island</option>
+        <option value="SC">South Carolina</option>
+        <option value="SD">South Dakota</option>
+        <option value="TN">Tennessee</option>
+        <option value="TX">Texas</option>
+        <option value="UT">Utah</option>
+        <option value="VT">Vermont</option>
+        <option value="VA">Virginia</option>
+        <option value="WA">Washington</option>
+        <option value="WV">West Virginia</option>
+        <option value="WI">Wisconsin</option>
+        <option value="WY">Wyoming</option>
+        <option value="DC">Washington, D.C.</option>
+      </select>
+    </div>
+
+  </div><!-- /card -->
+
+  <!-- Result -->
+  <div class="result-section" aria-live="polite" aria-label="Cost estimate result">
+    <p class="result-label">Estimated cost range</p>
+    <p class="result-range" id="result-range">$325,000 – $475,000</p>
+    <p class="result-sub" id="result-sub">$65 – $95 per sq ft · 5,000 SF · Mid-grade office</p>
+
+    <div class="bar-wrap" role="img" aria-label="Position within market range">
+      <div class="bar-fill" id="bar-fill" style="width: 60%;"></div>
+    </div>
+    <div class="bar-markers">
+      <span>Budget</span><span>Market range</span><span>Premium</span>
+    </div>
+
+    <div class="breakdown">
+      <div><p class="bk-label">Construction</p><p class="bk-val" id="bk-construction">$260,000</p></div>
+      <div><p class="bk-label">MEP + Systems</p><p class="bk-val" id="bk-mep">$85,000</p></div>
+      <div><p class="bk-label">FF&amp;E / Contingency</p><p class="bk-val" id="bk-other">$45,000</p></div>
+    </div>
+  </div>
+
+  <!-- Assumptions -->
+  <p class="assumptions">
+    <strong>How this estimate works:</strong> Base ranges reflect current Columbus-area labor and material costs,
+    adjusted by a regional index for your selected state. Timeline compression (under 6 months) adds a 10–15%
+    premium. Second-gen spaces typically save 15–20% vs. vanilla shell. Medical and lab buildouts carry a
+    significant MEP premium. <strong>This is a planning estimate, not a bid.</strong> Final costs depend on
+    actual design, site conditions, and subcontractor pricing.
+  </p>
+
+  <!-- CTA card -->
+  <div class="card cta-section" id="cta-anchor">
+    <div class="cta-text">
+      <h2>Ready for a real number?</h2>
+      <p>Our pre-construction team reviews your space and delivers a detailed estimate — usually within 5 business days, at no cost to you.</p>
+    </div>
+    <div class="cta-right">
+      <button class="cta-btn" onclick="showForm()">Request a free estimate</button>
+      <p class="cta-note">No commitment required</p>
+    </div>
+  </div>
+
+  <!-- Lead form -->
+  <div class="card" id="lead-form" style="display: none; margin-bottom: 48px;">
+    <div id="form-inner">
+      <p class="form-heading">Let's get you a real number</p>
+      <p class="form-sub">We'll reach out within 1 business day. No sales pressure — just a straight conversation about your project.</p>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label for="f-fname">First name *</label>
+          <input type="text" id="f-fname" placeholder="Sarah" autocomplete="given-name">
+        </div>
+        <div class="form-field">
+          <label for="f-lname">Last name *</label>
+          <input type="text" id="f-lname" placeholder="Chen" autocomplete="family-name">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label for="f-email">Work email *</label>
+          <input type="email" id="f-email" placeholder="sarah@company.com" autocomplete="email">
+        </div>
+        <div class="form-field">
+          <label for="f-phone">Phone</label>
+          <input type="tel" id="f-phone" placeholder="(614) 555-0100" autocomplete="tel">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label for="f-company">Company *</label>
+          <input type="text" id="f-company" placeholder="Acme Corp" autocomplete="organization">
+        </div>
+        <div class="form-field">
+          <label for="f-city">City / market</label>
+          <input type="text" id="f-city" placeholder="Columbus, OH">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label for="f-timeline">Anticipated project start</label>
+          <select id="f-timeline">
+            <option value="">Select...</option>
+            <option>Within 3 months</option>
+            <option>3–6 months</option>
+            <option>6–12 months</option>
+            <option>12+ months</option>
+            <option>Exploring / no timeline yet</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label for="f-source">How did you hear about us?</label>
+          <select id="f-source">
+            <option value="">Select...</option>
+            <option>Google search</option>
+            <option>Referral</option>
+            <option>LinkedIn</option>
+            <option>Broker / real estate agent</option>
+            <option>Other</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label for="f-notes">Anything else we should know?</label>
+          <input type="text" id="f-notes"
+            placeholder="e.g. move-in date, landlord TI allowance, specific requirements...">
+        </div>
+      </div>
+
+      <div class="form-err" id="form-err" role="alert">Please fill in your name, email, and company.</div>
+
+      <button class="submit-btn" id="submit-btn" onclick="submitForm()">
+        <span id="btn-label">Send my estimate request</span>
+        <div class="spinner" id="btn-spinner" aria-hidden="true"></div>
+      </button>
+    </div>
+
+    <!-- Success state -->
+    <div id="form-success" class="success-msg" style="display: none;" aria-live="polite">
+      <div class="success-icon">✅</div>
+      <h3>You're in the pipeline</h3>
+      <p>
+        Tom or someone from the InDecca pre-construction team will be in touch within 1 business day.<br>
+        Your project details have been saved — we'll reference your
+        <strong id="success-summary"></strong> estimate when we reach out.
+      </p>
+      <div class="hs-badge">🟠 Logged in HubSpot</div>
+      <br>
+      <a class="hs-link" id="hs-deal-link" href="#" target="_blank"
+         rel="noopener noreferrer" style="display: none;">
+        View deal in HubSpot →
+      </a>
+    </div>
+  </div>
+
+</main>
+
+<footer class="footer">
+  <p>© 2025 InDecca, LLC · Columbus, Ohio · <a href="https://indecca.com" style="color: #aaa;">indecca.com</a></p>
+  <p style="margin-top: 4px;">Estimates are for planning purposes only and do not constitute a bid or contract.</p>
+</footer>
+
+<script>
+  // ─── State ───────────────────────────────────────────────────────
+  const state = { sf: 5000, finish: 'mid', type: 'office', timeline: 9, condition: 'vanilla', stateCode: 'OH', stateName: 'Ohio' };
+  let currentLo = 0, currentHi = 0;
+
+  // ─── PSF data ────────────────────────────────────────────────────
+  const PSF = {
+    ranges: {
+      office:     { basic: [45, 65],  mid: [65, 95],   high: [110, 160] },
+      medical:    { basic: [90, 130], mid: [140, 190],  high: [200, 280] },
+      retail:     { basic: [40, 65],  mid: [70, 105],   high: [120, 175] },
+      industrial: { basic: [20, 35],  mid: [40, 60],    high: [70, 95]   },
+    },
+    conditionMult: { vanilla: 1, second: 0.82, demo: 1.12 },
+    timelineMult: (m) => m < 6 ? 1.13 : m < 9 ? 1.05 : 1,
+    // full market span for bar positioning
+    marketSpan: {
+      office:     { lo: 30,  hi: 175 },
+      medical:    { lo: 80,  hi: 290 },
+      retail:     { lo: 30,  hi: 180 },
+      industrial: { lo: 15,  hi: 100 },
+    },
+  };
+
+  const FINISH_NAMES = { basic: 'Basic', mid: 'Mid-grade', high: 'High-end' };
+  const TYPE_NAMES   = { office: 'Office', medical: 'Medical', retail: 'Retail', industrial: 'Industrial' };
+  const COND_NAMES   = { vanilla: 'Vanilla shell', second: 'Second gen', demo: 'Full demo' };
+
+  // Regional labor + material cost index relative to Ohio (1.00 = same as OH)
+  const STATE_MULT = {
+    AL:0.88, AK:1.28, AZ:1.02, AR:0.85, CA:1.38, CO:1.08, CT:1.22, DE:1.10,
+    FL:0.97, GA:0.93, HI:1.45, ID:0.93, IL:1.18, IN:0.96, IA:0.90, KS:0.88,
+    KY:0.91, LA:0.90, ME:1.05, MD:1.12, MA:1.30, MI:1.02, MN:1.10, MS:0.83,
+    MO:0.93, MT:0.95, NE:0.90, NV:1.05, NH:1.08, NJ:1.28, NM:0.92, NY:1.40,
+    NC:0.91, ND:0.92, OH:1.00, OK:0.87, OR:1.12, PA:1.14, RI:1.18, SC:0.88,
+    SD:0.88, TN:0.90, TX:0.97, UT:1.00, VT:1.08, VA:1.05, WA:1.20, WV:0.90,
+    WI:1.02, WY:0.93, DC:1.42,
+  };
+
+  const STATE_NAMES = {
+    AL:'Alabama', AK:'Alaska', AZ:'Arizona', AR:'Arkansas', CA:'California',
+    CO:'Colorado', CT:'Connecticut', DE:'Delaware', FL:'Florida', GA:'Georgia',
+    HI:'Hawaii', ID:'Idaho', IL:'Illinois', IN:'Indiana', IA:'Iowa', KS:'Kansas',
+    KY:'Kentucky', LA:'Louisiana', ME:'Maine', MD:'Maryland', MA:'Massachusetts',
+    MI:'Michigan', MN:'Minnesota', MS:'Mississippi', MO:'Missouri', MT:'Montana',
+    NE:'Nebraska', NV:'Nevada', NH:'New Hampshire', NJ:'New Jersey', NM:'New Mexico',
+    NY:'New York', NC:'North Carolina', ND:'North Dakota', OH:'Ohio', OK:'Oklahoma',
+    OR:'Oregon', PA:'Pennsylvania', RI:'Rhode Island', SC:'South Carolina',
+    SD:'South Dakota', TN:'Tennessee', TX:'Texas', UT:'Utah', VT:'Vermont',
+    VA:'Virginia', WA:'Washington', WV:'West Virginia', WI:'Wisconsin', WY:'Wyoming',
+    DC:'Washington, D.C.',
+  };
+
+  // ─── Helpers ─────────────────────────────────────────────────────
+  function fmt(n) { return '$' + Math.round(n).toLocaleString('en-US'); }
+
+  // ─── Core update ─────────────────────────────────────────────────
+  function update() {
+    state.sf       = parseInt(document.getElementById('sf-slider').value, 10);
+    state.timeline = parseInt(document.getElementById('timeline-slider').value, 10);
+
+    document.getElementById('sf-display').innerHTML =
+      state.sf.toLocaleString('en-US') + ' <span class="sf-unit">sq ft</span>';
+    document.getElementById('sf-val-label').textContent = state.sf.toLocaleString('en-US') + ' SF';
+    document.getElementById('timeline-val-label').textContent =
+      state.timeline + ' month' + (state.timeline === 1 ? '' : 's');
+
+    calc();
+  }
+
+  function selectOption(group, val, el) {
+    state[group] = val;
+    document.querySelectorAll('#' + group + '-grid .option-btn')
+      .forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    calc();
+  }
+
+  function selectState(code) {
+    state.stateCode = code;
+    state.stateName = STATE_NAMES[code] || code;
+    calc();
+  }
+
+  function calc() {
+    const base = PSF.ranges[state.type][state.finish];
+    const cm   = PSF.conditionMult[state.condition];
+    const tm   = PSF.timelineMult(state.timeline);
+    const sm   = STATE_MULT[state.stateCode] || 1.00;
+
+    currentLo = Math.round(base[0] * state.sf * cm * tm * sm);
+    currentHi = Math.round(base[1] * state.sf * cm * tm * sm);
+
+    document.getElementById('result-range').textContent = fmt(currentLo) + ' – ' + fmt(currentHi);
+
+    const psfLo = Math.round(currentLo / state.sf);
+    const psfHi = Math.round(currentHi / state.sf);
+    document.getElementById('result-sub').textContent =
+      '$' + psfLo + ' – $' + psfHi + ' per sq ft · ' +
+      state.sf.toLocaleString('en-US') + ' SF · ' +
+      FINISH_NAMES[state.finish] + ' ' + TYPE_NAMES[state.type] + ' · ' + state.stateName;
+
+    const mid = (currentLo + currentHi) / 2;
+    document.getElementById('bk-construction').textContent = fmt(mid * 0.63);
+    document.getElementById('bk-mep').textContent          = fmt(mid * 0.24);
+    document.getElementById('bk-other').textContent        = fmt(mid * 0.13);
+
+    const span = PSF.marketSpan[state.type];
+    const pct  = Math.min(95, Math.max(5, Math.round(((mid - span.lo * state.sf * sm) /
+                 ((span.hi - span.lo) * state.sf * sm)) * 100)));
+    document.getElementById('bar-fill').style.width = pct + '%';
+
+    // Show cost index label
+    const diff = Math.round((sm - 1) * 100);
+    const lbl  = diff === 0 ? 'Same cost as national baseline'
+               : diff > 0   ? '+' + diff + '% vs. national baseline'
+               :               diff + '% vs. national baseline';
+    document.getElementById('state-cost-label').textContent = lbl;
+  }
+
+  // ─── UI helpers ──────────────────────────────────────────────────
+  function scrollToCTA() {
+    document.getElementById('cta-anchor').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function showForm() {
+    const el = document.getElementById('lead-form');
+    el.style.display = 'block';
+    setTimeout(() => el.scrollIntoView({ behavior: 'smooth' }), 50);
+  }
+
+  // ─── Form submission → /api/estimate proxy ────────────────────────
+  async function submitForm() {
+    const fname   = document.getElementById('f-fname').value.trim();
+    const lname   = document.getElementById('f-lname').value.trim();
+    const email   = document.getElementById('f-email').value.trim();
+    const company = document.getElementById('f-company').value.trim();
+    const phone   = document.getElementById('f-phone').value.trim();
+    const city    = document.getElementById('f-city').value.trim();
+    const timeline = document.getElementById('f-timeline').value;
+    const source   = document.getElementById('f-source').value;
+    const notes    = document.getElementById('f-notes').value.trim();
+
+    const errEl = document.getElementById('form-err');
+    if (!fname || !email || !company) {
+      errEl.style.display = 'block';
+      return;
+    }
+    errEl.style.display = 'none';
+
+    const btn     = document.getElementById('submit-btn');
+    const lbl     = document.getElementById('btn-label');
+    const spinner = document.getElementById('btn-spinner');
+    btn.disabled        = true;
+    lbl.textContent     = 'Sending…';
+    spinner.style.display = 'block';
+
+    const psfLo    = Math.round(currentLo / state.sf);
+    const psfHi    = Math.round(currentHi / state.sf);
+    const dealName = company + ' – ' + TYPE_NAMES[state.type] + ' TI (' +
+                     state.sf.toLocaleString('en-US') + ' SF)';
+    const dealDesc =
+      'Estimate from TI Scope Estimator:\n' +
+      '• Space: ' + state.sf.toLocaleString('en-US') + ' SF ' + TYPE_NAMES[state.type] + '\n' +
+      '• Finish: ' + FINISH_NAMES[state.finish] + '\n' +
+      '• Condition: ' + COND_NAMES[state.condition] + '\n' +
+      '• Timeline: ' + state.timeline + ' months\n' +
+      '• State: ' + state.stateName + ' (' + state.stateCode + ')\n' +
+      '• Estimated range: ' + fmt(currentLo) + ' – ' + fmt(currentHi) +
+        ' ($' + psfLo + '–$' + psfHi + '/SF)\n' +
+      '• Move-in timeline: ' + (timeline || 'Not specified') + '\n' +
+      '• Source: '          + (source   || 'Not specified') + '\n' +
+      '• Notes: '           + (notes    || 'None');
+
+    const prompt =
+      'You are a HubSpot CRM assistant. Create the following records in HubSpot using the manage_crm_objects tool.\n\n' +
+      '1. Create a CONTACT with:\n' +
+      '   - firstname: "' + fname + '"\n' +
+      '   - lastname: "'  + lname + '"\n' +
+      '   - email: "'     + email + '"\n' +
+      '   - phone: "'     + phone + '"\n' +
+      '   - company: "'   + company + '"\n' +
+      '   - city: "'      + city + '"\n' +
+      '   - state: "'     + state.stateName + '"\n' +
+      '   - hs_lead_status: "NEW"\n' +
+      '   - hubspot_owner_id: "19650197"\n\n' +
+      '2. Create a COMPANY with:\n' +
+      '   - name: "' + company + '"\n' +
+      '   - city: "' + city + '"\n' +
+      '   - state: "' + state.stateName + '"\n' +
+      '   - hubspot_owner_id: "19650197"\n\n' +
+      '3. Create a DEAL with:\n' +
+      '   - dealname: "' + dealName + '"\n' +
+      '   - pipeline: "default"\n' +
+      '   - dealstage: "appointmentscheduled"\n' +
+      '   - amount: "' + Math.round((currentLo + currentHi) / 2) + '"\n' +
+      '   - description: ' + JSON.stringify(dealDesc) + '\n' +
+      '   - hubspot_owner_id: "19650197"\n\n' +
+      'Create all three objects. Return the deal ID in your response as "DEAL_ID: <id>".';
+
+    try {
+      const res = await fetch('/api/estimate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Server responded ' + res.status);
+      }
+
+      const data = await res.json();
+      const text = (data.content || [])
+        .filter(b => b.type === 'text')
+        .map(b => b.text)
+        .join('\n');
+
+      const match  = text.match(/DEAL_ID:\s*(\d+)/i);
+      const dealId = match ? match[1] : null;
+
+      // Show success
+      document.getElementById('form-inner').style.display = 'none';
+      const summary = state.sf.toLocaleString('en-US') + ' SF ' +
+                      FINISH_NAMES[state.finish].toLowerCase() + ' ' +
+                      TYPE_NAMES[state.type].toLowerCase();
+      document.getElementById('success-summary').textContent = summary;
+
+      if (dealId) {
+        const link = document.getElementById('hs-deal-link');
+        link.href         = 'https://app.hubspot.com/contacts/2873841/deal/' + dealId;
+        link.style.display = 'inline-block';
+      }
+      document.getElementById('form-success').style.display = 'block';
+
+    } catch (err) {
+      console.error('Submission error:', err);
+      btn.disabled          = false;
+      lbl.textContent       = 'Send my estimate request';
+      spinner.style.display = 'none';
+      errEl.textContent     = 'Something went wrong — please try again or email us directly.';
+      errEl.style.display   = 'block';
+    }
+  }
+
+  // ─── Init ────────────────────────────────────────────────────────
+  update();
+</script>
+</body>
+</html>
