@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "ti-estimator/api/estimate.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "ti-estimator/public/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/estimate",
+      "dest": "/ti-estimator/api/estimate.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/ti-estimator/public/$1"
+    }
+  ]
+}
